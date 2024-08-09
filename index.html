@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coin Collector Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script>
+        let coins = [];
+        let score = 0;
+        let coinRadius;
+        let coinSpeedMin;
+        let coinSpeedMax;
+
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            frameRate(60);
+            adjustGameParameters();
+        }
+
+        function draw() {
+            background(0); // BLACK
+
+            // Update and draw coins
+            for (let i = coins.length - 1; i >= 0; i--) {
+                let coin = coins[i];
+                coin.update();
+                coin.draw();
+                if (coin.collected || coin.y > height + coinRadius) {
+                    coins.splice(i, 1);
+                }
+            }
+
+            // Display score
+            fill(255); // WHITE
+            textSize(0.05 * height); // Font size as a percentage of canvas height
+            text(`Score: ${score}`, 0.02 * width, 0.05 * height);
+
+            // Randomly add coins
+            if (random(1) < 0.05) { // 5% chance to add a coin
+                coins.push(new Coin());
+            }
+        }
+
+        function mousePressed() {
+            let mousePos = createVector(mouseX, mouseY);
+            for (let coin of coins) {
+                if (coin.isCollected(mousePos)) {
+                    coin.collected = true;
+                    score++;
+                }
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            adjustGameParameters();
+        }
+
+        function adjustGameParameters() {
+            coinRadius = 0.05 * height; // Coin radius as a percentage of canvas height
+            coinSpeedMin = 0.01 * height; // Minimum speed as a percentage of canvas height
+            coinSpeedMax = 0.03 * height; // Maximum speed as a percentage of canvas height
+        }
+
+        class Coin {
+            constructor() {
+                this.x = random(coinRadius, width - coinRadius);
+                this.y = -coinRadius;
+                this.speed = random(coinSpeedMin, coinSpeedMax);
+                this.collected = false;
+            }
+
+            update() {
+                this.y += this.speed;
+            }
+
+            draw() {
+                fill(255, 215, 0); // GOLD
+                noStroke();
+                ellipse(this.x, this.y, coinRadius * 2);
+            }
+
+            isCollected(pos) {
+                let d = dist(this.x, this.y, pos.x, pos.y);
+                return d < coinRadius;
+            }
+        }
+    </script>
+</body>
+</html>
