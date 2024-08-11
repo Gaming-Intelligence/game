@@ -12,11 +12,13 @@
 </head>
 <body>
     <script>
+
         let screen_width;
         let screen_height;
         let coins = [];
         let score = 0;
         let base_radius = 20;
+        let prevMouseX, prevMouseY;
 
         function setup() {
         screen_width = windowWidth;
@@ -24,6 +26,8 @@
         createCanvas(screen_width, screen_height);
         textSize(screen_height * 0.05);
         textAlign(LEFT, TOP);
+        prevMouseX = mouseX;
+        prevMouseY = mouseY;
         }
 
         function draw() {
@@ -39,21 +43,39 @@
         for (let i = coins.length - 1; i >= 0; i--) {
             coins[i].update();
             coins[i].draw();
-            
+
             // Remove collected coins or those that fall off the screen
             if (coins[i].collected || coins[i].y > screen_height + coins[i].radius) {
             coins.splice(i, 1);
             }
         }
 
+        // Detect swipe and collect coins
+        if (mouseIsPressed) {
+            detectSwipe();
+        }
+
         // Draw the score
         fill(255); // WHITE
         text(`Score: ${score}`, screen_width * 0.02, screen_height * 0.02);
+
+        // Update previous mouse positions
+        prevMouseX = mouseX;
+        prevMouseY = mouseY;
         }
 
         function mousePressed() {
         for (let coin of coins) {
             if (coin.isCollected(mouseX, mouseY)) {
+            coin.collected = true;
+            score += coin.value; // Increase the score based on coin value
+            }
+        }
+        }
+
+        function detectSwipe() {
+        for (let coin of coins) {
+            if (coin.isCollectedOnSwipe(prevMouseX, prevMouseY, mouseX, mouseY)) {
             coin.collected = true;
             score += coin.value; // Increase the score based on coin value
             }
@@ -97,6 +119,16 @@
         isCollected(mx, my) {
             let distance = dist(this.x, this.y, mx, my);
             return distance < this.radius;
+        }
+
+        isCollectedOnSwipe(prevX, prevY, currX, currY) {
+            // Check if the line between previous and current mouse positions intersects the coin's area
+            let d1 = dist(prevX, prevY, this.x, this.y);
+            let d2 = dist(currX, currY, this.x, this.y);
+            let lineLen = dist(prevX, prevY, currX, currY);
+
+            // Check if the distance from the coin to the line segment is less than the coin's radius
+            return d1 + d2 <= lineLen + this.radius * 2 && d1 + d2 >= lineLen - this.radius * 2;
         }
         }
 
