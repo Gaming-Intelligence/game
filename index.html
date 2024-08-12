@@ -24,7 +24,7 @@
         let screen_height;
         let coins = [];
         let score = 0;
-        let base_radius = 20;
+        let base_radius = 25; // Increase base radius for larger coins
         let backgroundImage;
         let goldCoinImage, silverCoinImage, bronzeCoinImage, newCoinImage;
         let imageLoaded = false;
@@ -176,7 +176,7 @@
                     this.value = 0;
                 } else if (this.coinType === "new") {
                     this.image = newCoinImage;
-                    this.value = 10;
+                    this.value = 0;
                 }
 
                 this.speed = speed * 0.3; // Adjusted to slow down the coin drop
@@ -192,8 +192,9 @@
             }
 
             isCollected(mx, my) {
+                let touchRadius = this.radius * 1; // Increase touch radius
                 let distance = dist(this.x, this.y, mx, my);
-                return distance < this.radius;
+                return distance < touchRadius;
             }
         }
 
@@ -245,6 +246,7 @@
             resizeCanvas(screen_width, screen_height);
             textSize(screen_height * 0.05); // Make the text responsive
         }
+
     </script>
 </body>
 
