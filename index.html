@@ -112,10 +112,6 @@
                 }
             }
 
-            if (mouseIsPressed) {
-                detectSwipe();
-            }
-
             fill(255); // WHITE
             text(`Score: ${score}`, screen_width * 0.02, screen_height * 0.02);
 
@@ -124,8 +120,16 @@
             }
         }
 
-        function mousePressed() {
+        // Use touchStarted instead of mousePressed for mobile compatibility
+        function touchStarted() {
             collectCoins();
+            return false; // Prevent default behavior
+        }
+
+        // Use touchMoved instead of mouseIsPressed for mobile compatibility
+        function touchMoved() {
+            detectSwipe();
+            return false; // Prevent default behavior
         }
 
         function detectSwipe() {
