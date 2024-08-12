@@ -139,7 +139,11 @@
         function collectCoins() {
             for (let i = coins.length - 1; i >= 0; i--) {
                 if (coins[i].isCollected(mouseX, mouseY)) {
-                    score += coins[i].value; // Increase the score based on coin value
+                    if (coins[i].coinType === "new") {
+                        score = Math.floor(score * 0.5); // Deduct 50% of the current score
+                    } else {
+                        score += coins[i].value; // Increase the score based on coin value
+                    }
 
                     if (coins[i].coinType === "bronze") {
                         triggerFreeze(); // Trigger freeze when bronze coin is collected
@@ -175,7 +179,7 @@
                     this.value = 10;
                 }
 
-                this.speed = speed * 0.5; // Slow down the coin drop by adjusting this factor
+                this.speed = speed * 0.3; // Adjusted to slow down the coin drop
                 this.collected = false;
             }
 
@@ -241,7 +245,6 @@
             resizeCanvas(screen_width, screen_height);
             textSize(screen_height * 0.05); // Make the text responsive
         }
-
     </script>
 </body>
 
