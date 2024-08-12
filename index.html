@@ -25,10 +25,21 @@
         let coins = [];
         let score = 0;
         let base_radius = 20;
-        let prevMouseX, prevMouseY;
         let backgroundImage;
         let goldCoinImage, silverCoinImage, bronzeCoinImage, newCoinImage;
         let imageLoaded = false;
+        let timer = 45; // 45 seconds timer
+        let totalCoins = 155;
+        let coinsReleased = 0;
+        let startTime;
+        let gameEnded = false;
+        let coinDistribution = {
+            silver: 100,
+            gold: 50,
+            bronze: 6,
+            new: 5
+        };
+        let coinInterval;
 
         function preload() {
             backgroundImage = loadImage('background.jpg', () => {
@@ -48,13 +59,16 @@
             createCanvas(screen_width, screen_height);
             textSize(screen_height * 0.05);
             textAlign(LEFT, TOP);
-            prevMouseX = mouseX;
-            prevMouseY = mouseY;
+
+            // Calculate the start time
+            startTime = millis();
+
+            // Calculate interval for dropping coins based on the total number of coins and the timer
+            coinInterval = (timer * 1000) / totalCoins;
         }
 
         function draw() {
             if (!imageLoaded) {
-                // Display a loading screen
                 background(50); // Dark background while loading
                 fill(255);
                 textAlign(CENTER, CENTER);
@@ -63,38 +77,45 @@
                 return; // Skip the rest of draw until the image is loaded
             }
 
-            // Draw the background image to fit the entire screen
             image(backgroundImage, 0, 0, screen_width, screen_height);
 
-            // Add a new coin periodically
-            if (frameCount % 20 === 0) {
-                let coinType = random(["gold", "silver", "bronze", "new"]);
-                coins.push(new Coin(coinType));
+            // Update the timer
+            let elapsed = (millis() - startTime) / 1000;
+            let remainingTime = max(0, timer - elapsed).toFixed(2);
+
+            // Drop coins based on the interval
+            if (remainingTime > 0 && millis() - startTime >= coinsReleased * coinInterval) {
+                let coinType = getNextCoinType();
+                if (coinType) {
+                    let speedFactor = map(coinsReleased, 0, totalCoins, 1, 2); // Adjust speed to be slower
+                    coins.push(new Coin(coinType, speedFactor));
+                    coinsReleased++;
+                }
             }
 
-            // Update and draw all coins
             for (let i = coins.length - 1; i >= 0; i--) {
                 coins[i].update();
                 coins[i].draw();
 
-                // Remove collected coins or those that fall off the screen
                 if (coins[i].collected || coins[i].y > screen_height + coins[i].radius) {
                     coins.splice(i, 1);
+                    if (coinsReleased >= totalCoins && coins.length === 0) {
+                        endGame();
+                    }
                 }
             }
 
-            // Detect swipe and collect coins
             if (mouseIsPressed) {
                 detectSwipe();
             }
 
-            // Draw the score
             fill(255); // WHITE
             text(`Score: ${score}`, screen_width * 0.02, screen_height * 0.02);
+            text(`Time: ${remainingTime}`, screen_width * 0.8, screen_height * 0.02);
 
-            // Update previous mouse positions
-            prevMouseX = mouseX;
-            prevMouseY = mouseY;
+            if (remainingTime <= 0 && !gameEnded) {
+                endGame();
+            }
         }
 
         function mousePressed() {
@@ -108,7 +129,7 @@
 
         function detectSwipe() {
             for (let coin of coins) {
-                if (coin.isCollectedOnSwipe(prevMouseX, prevMouseY, mouseX, mouseY)) {
+                if (coin.isCollected(mouseX, mouseY)) {
                     coin.collected = true;
                     score += coin.value; // Increase the score based on coin value
                 }
@@ -116,7 +137,7 @@
         }
 
         class Coin {
-            constructor(coinType) {
+            constructor(coinType, speedFactor) {
                 this.radius = base_radius * (screen_height / 600); // Scale radius based on screen height
                 this.x = random(this.radius, screen_width - this.radius);
                 this.y = -this.radius; // Start above the screen
@@ -125,30 +146,29 @@
                 if (this.coinType === "gold") {
                     this.image = goldCoinImage;
                     this.value = 5;
-                    this.speed = random(3, 6) * (screen_height / 600);
+                    this.speed = random(2 * speedFactor, 4 * speedFactor); // Adjusted slower speed
                 } else if (this.coinType === "silver") {
                     this.image = silverCoinImage;
                     this.value = 3;
-                    this.speed = random(5, 8) * (screen_height / 600);
+                    this.speed = random(1.5 * speedFactor, 3.5 * speedFactor); // Adjusted slower speed
                 } else if (this.coinType === "bronze") {
                     this.image = bronzeCoinImage;
                     this.value = 1;
-                    this.speed = random(7, 10) * (screen_height / 600);
+                    this.speed = random(1 * speedFactor, 3 * speedFactor); // Adjusted slower speed
                 } else if (this.coinType === "new") {
-                    this.image = newCoinImage; // New coin image
-                    this.value = 10; // Set the value for the new coin
-                    this.speed = random(4, 7) * (screen_height / 600); // Set the speed for the new coin
+                    this.image = newCoinImage;
+                    this.value = 10;
+                    this.speed = random(2.5 * speedFactor, 5 * speedFactor); // Adjusted slower speed
                 }
 
                 this.collected = false;
             }
 
             update() {
-                this.y += this.speed; // Move the coin downwards
+                this.y += this.speed * (screen_height / 600); // Move the coin downwards, responsive to screen height
             }
 
             draw() {
-                // Draw the coin image
                 image(this.image, this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
             }
 
@@ -156,22 +176,36 @@
                 let distance = dist(this.x, this.y, mx, my);
                 return distance < this.radius;
             }
+        }
 
-            isCollectedOnSwipe(prevX, prevY, currX, currY) {
-                // Check if the line between previous and current mouse positions intersects the coin's area
-                let d1 = dist(prevX, prevY, this.x, this.y);
-                let d2 = dist(currX, currY, this.x, this.y);
-                let lineLen = dist(prevX, prevY, currX, currY);
+        function getNextCoinType() {
+            let totalDistributed = 0;
+            let rand = random(0, totalCoins - coinsReleased);
 
-                // Check if the distance from the coin to the line segment is less than the coin's radius
-                return d1 + d2 <= lineLen + this.radius * 2 && d1 + d2 >= lineLen - this.radius * 2;
+            for (let type in coinDistribution) {
+                totalDistributed += coinDistribution[type];
+                if (rand < totalDistributed) {
+                    coinDistribution[type]--;
+                    return type;
+                }
             }
+            return null;
+        }
+
+        function endGame() {
+            noLoop(); // Stop the draw loop
+            gameEnded = true;
+            fill(255, 0, 0); // RED
+            textAlign(CENTER, CENTER);
+            textSize(48);
+            text('Game Over', screen_width / 2, screen_height / 2);
         }
 
         function windowResized() {
             screen_width = windowWidth;
             screen_height = windowHeight;
             resizeCanvas(screen_width, screen_height);
+            textSize(screen_height * 0.05); // Make the text responsive
         }
 
 
