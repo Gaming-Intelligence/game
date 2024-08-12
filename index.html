@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coin Collector Game</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <style>
-        body { margin: 0; }
-        canvas { display: block; }
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            display: block;
+        }
     </style>
 </head>
+
 <body>
     <script>
 
@@ -19,125 +26,156 @@
         let score = 0;
         let base_radius = 20;
         let prevMouseX, prevMouseY;
+        let backgroundImage;
+        let goldCoinImage, silverCoinImage, bronzeCoinImage, newCoinImage;
+        let imageLoaded = false;
+
+        function preload() {
+            backgroundImage = loadImage('background.jpg', () => {
+                imageLoaded = true; // Set flag to true once the image is loaded
+            });
+
+            // Load coin images
+            goldCoinImage = loadImage('gi_coin.png');
+            silverCoinImage = loadImage('new_coin.png');
+            bronzeCoinImage = loadImage('bull_coin.png');
+            newCoinImage = loadImage('bear_coin.png'); // Load your new coin image
+        }
 
         function setup() {
-        screen_width = windowWidth;
-        screen_height = windowHeight;
-        createCanvas(screen_width, screen_height);
-        textSize(screen_height * 0.05);
-        textAlign(LEFT, TOP);
-        prevMouseX = mouseX;
-        prevMouseY = mouseY;
+            screen_width = windowWidth;
+            screen_height = windowHeight;
+            createCanvas(screen_width, screen_height);
+            textSize(screen_height * 0.05);
+            textAlign(LEFT, TOP);
+            prevMouseX = mouseX;
+            prevMouseY = mouseY;
         }
 
         function draw() {
-        background(0); // BLACK
-
-        // Add a new coin periodically
-        if (frameCount % 20 === 0) { // Adjust the frequency of new coins
-            let coinType = random(["gold", "silver", "bronze"]);
-            coins.push(new Coin(coinType));
-        }
-
-        // Update and draw all coins
-        for (let i = coins.length - 1; i >= 0; i--) {
-            coins[i].update();
-            coins[i].draw();
-
-            // Remove collected coins or those that fall off the screen
-            if (coins[i].collected || coins[i].y > screen_height + coins[i].radius) {
-            coins.splice(i, 1);
+            if (!imageLoaded) {
+                // Display a loading screen
+                background(50); // Dark background while loading
+                fill(255);
+                textAlign(CENTER, CENTER);
+                textSize(32);
+                text('Loading...', screen_width / 2, screen_height / 2);
+                return; // Skip the rest of draw until the image is loaded
             }
-        }
 
-        // Detect swipe and collect coins
-        if (mouseIsPressed) {
-            detectSwipe();
-        }
+            // Draw the background image to fit the entire screen
+            image(backgroundImage, 0, 0, screen_width, screen_height);
 
-        // Draw the score
-        fill(255); // WHITE
-        text(`Score: ${score}`, screen_width * 0.02, screen_height * 0.02);
+            // Add a new coin periodically
+            if (frameCount % 20 === 0) {
+                let coinType = random(["gold", "silver", "bronze", "new"]);
+                coins.push(new Coin(coinType));
+            }
 
-        // Update previous mouse positions
-        prevMouseX = mouseX;
-        prevMouseY = mouseY;
+            // Update and draw all coins
+            for (let i = coins.length - 1; i >= 0; i--) {
+                coins[i].update();
+                coins[i].draw();
+
+                // Remove collected coins or those that fall off the screen
+                if (coins[i].collected || coins[i].y > screen_height + coins[i].radius) {
+                    coins.splice(i, 1);
+                }
+            }
+
+            // Detect swipe and collect coins
+            if (mouseIsPressed) {
+                detectSwipe();
+            }
+
+            // Draw the score
+            fill(255); // WHITE
+            text(`Score: ${score}`, screen_width * 0.02, screen_height * 0.02);
+
+            // Update previous mouse positions
+            prevMouseX = mouseX;
+            prevMouseY = mouseY;
         }
 
         function mousePressed() {
-        for (let coin of coins) {
-            if (coin.isCollected(mouseX, mouseY)) {
-            coin.collected = true;
-            score += coin.value; // Increase the score based on coin value
+            for (let coin of coins) {
+                if (coin.isCollected(mouseX, mouseY)) {
+                    coin.collected = true;
+                    score += coin.value; // Increase the score based on coin value
+                }
             }
-        }
         }
 
         function detectSwipe() {
-        for (let coin of coins) {
-            if (coin.isCollectedOnSwipe(prevMouseX, prevMouseY, mouseX, mouseY)) {
-            coin.collected = true;
-            score += coin.value; // Increase the score based on coin value
+            for (let coin of coins) {
+                if (coin.isCollectedOnSwipe(prevMouseX, prevMouseY, mouseX, mouseY)) {
+                    coin.collected = true;
+                    score += coin.value; // Increase the score based on coin value
+                }
             }
-        }
         }
 
         class Coin {
-        constructor(coinType) {
-            this.radius = base_radius * (screen_height / 600); // Scale radius based on screen height
-            this.x = random(this.radius, screen_width - this.radius);
-            this.y = -this.radius; // Start above the screen
-            this.coinType = coinType;
+            constructor(coinType) {
+                this.radius = base_radius * (screen_height / 600); // Scale radius based on screen height
+                this.x = random(this.radius, screen_width - this.radius);
+                this.y = -this.radius; // Start above the screen
+                this.coinType = coinType;
 
-            if (this.coinType === "gold") {
-            this.color = color(255, 215, 0); // GOLD
-            this.value = 5;
-            this.speed = random(3, 6) * (screen_height / 600);
-            } else if (this.coinType === "silver") {
-            this.color = color(192, 192, 192); // SILVER
-            this.value = 3;
-            this.speed = random(5, 8) * (screen_height / 600);
-            } else if (this.coinType === "bronze") {
-            this.color = color(205, 127, 50); // BRONZE
-            this.value = 1;
-            this.speed = random(7, 10) * (screen_height / 600);
+                if (this.coinType === "gold") {
+                    this.image = goldCoinImage;
+                    this.value = 5;
+                    this.speed = random(3, 6) * (screen_height / 600);
+                } else if (this.coinType === "silver") {
+                    this.image = silverCoinImage;
+                    this.value = 3;
+                    this.speed = random(5, 8) * (screen_height / 600);
+                } else if (this.coinType === "bronze") {
+                    this.image = bronzeCoinImage;
+                    this.value = 1;
+                    this.speed = random(7, 10) * (screen_height / 600);
+                } else if (this.coinType === "new") {
+                    this.image = newCoinImage; // New coin image
+                    this.value = 10; // Set the value for the new coin
+                    this.speed = random(4, 7) * (screen_height / 600); // Set the speed for the new coin
+                }
+
+                this.collected = false;
             }
 
-            this.collected = false;
-        }
+            update() {
+                this.y += this.speed; // Move the coin downwards
+            }
 
-        update() {
-            this.y += this.speed; // Move the coin downwards
-        }
+            draw() {
+                // Draw the coin image
+                image(this.image, this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+            }
 
-        draw() {
-            fill(this.color);
-            noStroke();
-            ellipse(this.x, this.y, this.radius * 2);
-        }
+            isCollected(mx, my) {
+                let distance = dist(this.x, this.y, mx, my);
+                return distance < this.radius;
+            }
 
-        isCollected(mx, my) {
-            let distance = dist(this.x, this.y, mx, my);
-            return distance < this.radius;
-        }
+            isCollectedOnSwipe(prevX, prevY, currX, currY) {
+                // Check if the line between previous and current mouse positions intersects the coin's area
+                let d1 = dist(prevX, prevY, this.x, this.y);
+                let d2 = dist(currX, currY, this.x, this.y);
+                let lineLen = dist(prevX, prevY, currX, currY);
 
-        isCollectedOnSwipe(prevX, prevY, currX, currY) {
-            // Check if the line between previous and current mouse positions intersects the coin's area
-            let d1 = dist(prevX, prevY, this.x, this.y);
-            let d2 = dist(currX, currY, this.x, this.y);
-            let lineLen = dist(prevX, prevY, currX, currY);
-
-            // Check if the distance from the coin to the line segment is less than the coin's radius
-            return d1 + d2 <= lineLen + this.radius * 2 && d1 + d2 >= lineLen - this.radius * 2;
-        }
+                // Check if the distance from the coin to the line segment is less than the coin's radius
+                return d1 + d2 <= lineLen + this.radius * 2 && d1 + d2 >= lineLen - this.radius * 2;
+            }
         }
 
         function windowResized() {
-        screen_width = windowWidth;
-        screen_height = windowHeight;
-        resizeCanvas(screen_width, screen_height);
+            screen_width = windowWidth;
+            screen_height = windowHeight;
+            resizeCanvas(screen_width, screen_height);
         }
+
 
     </script>
 </body>
+
 </html>
