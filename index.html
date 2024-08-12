@@ -31,6 +31,9 @@
         let totalCoins = 155;
         let coinsReleased = 0;
         let gameEnded = false;
+        let freezeTime = 3000; // 3 seconds freeze time
+        let isFrozen = false;
+        let freezeStart = 0;
         let coinDistribution = {
             silver: 95,
             gold: 50,
@@ -70,6 +73,16 @@
                 textSize(32);
                 text('Loading...', screen_width / 2, screen_height / 2);
                 return; // Skip the rest of draw until the image is loaded
+            }
+
+            // Handle freezing
+            if (isFrozen) {
+                if (millis() - freezeStart >= freezeTime) {
+                    isFrozen = false; // End freeze after 3 seconds
+                } else {
+                    displayGame(); // Allow coin collection during freeze
+                    return; // Skip coin dropping and movement while frozen
+                }
             }
 
             image(backgroundImage, 0, 0, screen_width, screen_height);
@@ -112,21 +125,29 @@
         }
 
         function mousePressed() {
-            for (let coin of coins) {
-                if (coin.isCollected(mouseX, mouseY)) {
-                    coin.collected = true;
-                    score += coin.value; // Increase the score based on coin value
+            collectCoins();
+        }
+
+        function detectSwipe() {
+            collectCoins();
+        }
+
+        function collectCoins() {
+            for (let i = coins.length - 1; i >= 0; i--) {
+                if (coins[i].isCollected(mouseX, mouseY)) {
+                    score += coins[i].value; // Increase the score based on coin value
+
+                    if (coins[i].coinType === "bronze") {
+                        triggerFreeze(); // Trigger freeze when bronze coin is collected
+                    }
+                    coins.splice(i, 1); // Remove collected coin from the array
                 }
             }
         }
 
-        function detectSwipe() {
-            for (let coin of coins) {
-                if (coin.isCollected(mouseX, mouseY)) {
-                    coin.collected = true;
-                    score += coin.value; // Increase the score based on coin value
-                }
-            }
+        function triggerFreeze() {
+            isFrozen = true;
+            freezeStart = millis();
         }
 
         class Coin {
@@ -138,13 +159,13 @@
 
                 if (this.coinType === "gold") {
                     this.image = goldCoinImage;
-                    this.value = 5;
+                    this.value = 500;
                 } else if (this.coinType === "silver") {
                     this.image = silverCoinImage;
-                    this.value = 3;
+                    this.value = 100;
                 } else if (this.coinType === "bronze") {
                     this.image = bronzeCoinImage;
-                    this.value = 1;
+                    this.value = 0;
                 } else if (this.coinType === "new") {
                     this.image = newCoinImage;
                     this.value = 10;
@@ -197,6 +218,17 @@
             text('Game Over', screen_width / 2, screen_height / 2 - 50);
             textSize(screen_height * 0.05);
             text(`Score: ${score}`, screen_width / 2, screen_height / 2 + 50);
+        }
+
+        function displayGame() {
+            image(backgroundImage, 0, 0, screen_width, screen_height);
+
+            for (let i = coins.length - 1; i >= 0; i--) {
+                coins[i].draw(); // Only draw coins, no movement during freeze
+            }
+
+            fill(255); // WHITE
+            text(`Score: ${score}`, screen_width * 0.02, screen_height * 0.02);
         }
 
         function windowResized() {
