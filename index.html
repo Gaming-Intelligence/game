@@ -118,7 +118,9 @@
 
                 if (coins[i].collected || coins[i].y > screen_height + coins[i].radius) {
                     coins.splice(i, 1);
-                    if (coinsReleased >= totalCoins && coins.length === 0 && !gameEnded) {
+
+                    // Check if the last coin is collected or leaves the screen
+                    if (coinsReleased >= totalCoins && coins.length === 0) {
                         endGame();
                     }
                 }
@@ -181,6 +183,11 @@
 
                     createParticles(coins[i].x, coins[i].y); // Create particles at the coin's position
                     coins.splice(i, 1);
+
+                    // Check if the last coin is collected
+                    if (coinsReleased >= totalCoins && coins.length === 0) {
+                        endGame();
+                    }
                 }
             }
         }
@@ -323,6 +330,7 @@
             resizeCanvas(screen_width, screen_height);
             textSize(screen_height * 0.05);
         }
+
     </script>
 </body>
 
