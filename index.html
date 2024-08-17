@@ -24,7 +24,7 @@
         let screen_height;
         let coins = [];
         let score = 0;
-        let base_radius = 25; // Increase base radius for larger coins
+        let base_radius = 25;
         let backgroundImage;
         let goldCoinImage, silverCoinImage, bronzeCoinImage, newCoinImage;
         let imageLoaded = false;
@@ -34,6 +34,7 @@
         let freezeTime = 3000; // 3 seconds freeze time
         let isFrozen = false;
         let freezeStart = 0;
+        let lastCoinReleaseTime = 0;
         let coinDistribution = {
             silver: 95,
             gold: 50,
@@ -41,17 +42,20 @@
             new: 4
         };
         let coinInterval;
+        let particles = [];
+        let fadeAmount = 0;
+        let fadingIn = true;
 
         function preload() {
             backgroundImage = loadImage('background.jpg', () => {
-                imageLoaded = true; // Set flag to true once the image is loaded
+                imageLoaded = true;
             });
 
             // Load coin images
             goldCoinImage = loadImage('gi_coin.png');
             silverCoinImage = loadImage('new_coin.png');
             bronzeCoinImage = loadImage('bull_coin.png');
-            newCoinImage = loadImage('bear_coin.png'); // Load your new coin image
+            newCoinImage = loadImage('bear_coin.png');
         }
 
         function setup() {
@@ -61,42 +65,41 @@
             textSize(screen_height * 0.05);
             textAlign(LEFT, TOP);
 
-            // Calculate interval for dropping coins based on the total number of coins
-            coinInterval = 45 * 1000 / totalCoins; // Use a fixed interval for simplicity
+            coinInterval = 45 * 1000 / totalCoins; // Coin drop interval
         }
 
         function draw() {
             if (!imageLoaded) {
-                background(50); // Dark background while loading
+                background(50);
                 fill(255);
                 textAlign(CENTER, CENTER);
                 textSize(32);
                 text('Loading...', screen_width / 2, screen_height / 2);
-                return; // Skip the rest of draw until the image is loaded
+                return;
             }
 
-            // Handle freezing
+            // Background image
+            image(backgroundImage, 0, 0, screen_width, screen_height);
+
             if (isFrozen) {
                 if (millis() - freezeStart >= freezeTime) {
-                    isFrozen = false; // End freeze after 3 seconds
+                    isFrozen = false;
+                    lastCoinReleaseTime += millis() - freezeStart;
                 } else {
-                    displayGame(); // Allow coin collection during freeze
-                    return; // Skip coin dropping and movement while frozen
+                    displayGame();
+                    return;
                 }
             }
 
-            image(backgroundImage, 0, 0, screen_width, screen_height);
-
-            // Drop coins based on the interval
             let currentTime = millis();
-            if (coinsReleased < totalCoins && currentTime >= coinsReleased * coinInterval) {
+            if (coinsReleased < totalCoins && currentTime - lastCoinReleaseTime >= coinInterval) {
                 let coinType = getNextCoinType();
                 if (coinType) {
-                    // Calculate time remaining for the coin to fall
-                    let fallDuration = (screen_height / (screen_height / 45)); // Fixed fall duration
-                    let speed = screen_height / fallDuration; // Speed to ensure the coin falls within the duration
+                    let fallDuration = screen_height / 45;
+                    let speed = screen_height / fallDuration;
                     coins.push(new Coin(coinType, speed));
                     coinsReleased++;
+                    lastCoinReleaseTime = currentTime;
                 }
             }
 
@@ -112,24 +115,50 @@
                 }
             }
 
-            fill(255); // WHITE
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].isFinished()) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            fill(255);
             text(`Score: ${score}`, screen_width * 0.02, screen_height * 0.02);
 
             if (gameEnded) {
                 showGameOverPopup();
+            } else if (fadingIn) {
+                fadeInEffect();
             }
         }
 
-        // Use touchStarted instead of mousePressed for mobile compatibility
-        function touchStarted() {
-            collectCoins();
-            return false; // Prevent default behavior
+        function fadeInEffect() {
+            fill(0, 0, 0, 255 - fadeAmount);
+            rect(0, 0, screen_width, screen_height);
+            fadeAmount += 5;
+            if (fadeAmount >= 255) {
+                fadingIn = false;
+            }
         }
 
-        // Use touchMoved instead of mouseIsPressed for mobile compatibility
+        function fadeOutEffect(callback) {
+            fill(0, 0, 0, fadeAmount);
+            rect(0, 0, screen_width, screen_height);
+            fadeAmount += 5;
+            if (fadeAmount >= 255) {
+                callback();
+            }
+        }
+
+        function touchStarted() {
+            collectCoins();
+            return false;
+        }
+
         function touchMoved() {
             detectSwipe();
-            return false; // Prevent default behavior
+            return false;
         }
 
         function detectSwipe() {
@@ -140,15 +169,17 @@
             for (let i = coins.length - 1; i >= 0; i--) {
                 if (coins[i].isCollected(mouseX, mouseY)) {
                     if (coins[i].coinType === "new") {
-                        score = Math.floor(score * 0.5); // Deduct 50% of the current score
+                        score = Math.floor(score * 0.5);
                     } else {
-                        score += coins[i].value; // Increase the score based on coin value
+                        score += coins[i].value;
                     }
 
                     if (coins[i].coinType === "bronze") {
-                        triggerFreeze(); // Trigger freeze when bronze coin is collected
+                        triggerFreeze();
                     }
-                    coins.splice(i, 1); // Remove collected coin from the array
+
+                    createParticles(coins[i].x, coins[i].y); // Create particles at the coin's position
+                    coins.splice(i, 1);
                 }
             }
         }
@@ -160,10 +191,11 @@
 
         class Coin {
             constructor(coinType, speed) {
-                this.radius = base_radius * (screen_height / 600); // Scale radius based on screen height
+                this.radius = base_radius * (screen_height / 600);
                 this.x = random(this.radius, screen_width - this.radius);
-                this.y = -this.radius; // Start above the screen
+                this.y = -this.radius;
                 this.coinType = coinType;
+                this.angle = 0; // Angle for rotation
 
                 if (this.coinType === "gold") {
                     this.image = goldCoinImage;
@@ -179,22 +211,62 @@
                     this.value = 0;
                 }
 
-                this.speed = speed * 0.3; // Adjusted to slow down the coin drop
+                this.speed = speed * 0.1; // Adjust speed scaling
                 this.collected = false;
             }
 
             update() {
-                this.y += this.speed * (screen_height / 600); // Move the coin downwards, responsive to screen height
+                this.y += this.speed;
+                this.angle += 0.05; // Increase angle for rotation
             }
 
             draw() {
-                image(this.image, this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+                push();
+                translate(this.x, this.y);
+                rotate(this.angle);
+                imageMode(CENTER);
+                image(this.image, 0, 0, this.radius * 2, this.radius * 2);
+                pop();
             }
 
             isCollected(mx, my) {
-                let touchRadius = this.radius * 1; // Increase touch radius
+                let touchRadius = this.radius * 1;
                 let distance = dist(this.x, this.y, mx, my);
                 return distance < touchRadius;
+            }
+        }
+
+        function createParticles(x, y) {
+            for (let i = 0; i < 20; i++) {
+                particles.push(new Particle(x, y));
+            }
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = random(5, 10);
+                this.color = color(random(255), random(255), random(255));
+                this.xSpeed = random(-2, 2);
+                this.ySpeed = random(-2, 2);
+                this.lifespan = 255;
+            }
+
+            update() {
+                this.x += this.xSpeed;
+                this.y += this.ySpeed;
+                this.lifespan -= 5;
+            }
+
+            draw() {
+                noStroke();
+                fill(this.color.levels[0], this.color.levels[1], this.color.levels[2], this.lifespan);
+                ellipse(this.x, this.y, this.size);
+            }
+
+            isFinished() {
+                return this.lifespan <= 0;
             }
         }
 
@@ -213,15 +285,15 @@
         }
 
         function endGame() {
-            noLoop(); // Stop the draw loop
             gameEnded = true;
+            fadeOutEffect(() => noLoop()); // Smooth transition to game over state
         }
 
         function showGameOverPopup() {
-            fill(0, 0, 0, 150); // Semi-transparent background
+            fill(0, 0, 0, 150);
             rect(0, 0, screen_width, screen_height);
 
-            fill(255); // WHITE
+            fill(255);
             textAlign(CENTER, CENTER);
             textSize(screen_height * 0.1);
             text('Game Over', screen_width / 2, screen_height / 2 - 50);
@@ -230,21 +302,25 @@
         }
 
         function displayGame() {
-            image(backgroundImage, 0, 0, screen_width, screen_height);
+        image(backgroundImage, 0, 0, screen_width, screen_height);
 
-            for (let i = coins.length - 1; i >= 0; i--) {
-                coins[i].draw(); // Only draw coins, no movement during freeze
-            }
-
-            fill(255); // WHITE
-            text(`Score: ${score}`, screen_width * 0.02, screen_height * 0.02);
+        for (let i = coins.length - 1; i >= 0; i--) {
+            coins[i].draw();
         }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].draw();
+        }
+
+        fill(255);
+        text(`Score: ${score}`, screen_width * 0.02, screen_height * 0.02);
+    }
 
         function windowResized() {
             screen_width = windowWidth;
             screen_height = windowHeight;
             resizeCanvas(screen_width, screen_height);
-            textSize(screen_height * 0.05); // Make the text responsive
+            textSize(screen_height * 0.05);
         }
 
     </script>
