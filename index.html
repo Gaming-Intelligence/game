@@ -14,10 +14,44 @@
         canvas {
             display: block;
         }
+
+        #game-over-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        #game-over-popup button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
     </style>
 </head>
 
 <body>
+
+    <div id="game-over-popup">
+        <div id="game-over-text"></div>
+        <button onclick="collectScore()">Collect</button>
+    </div>
+
     <script>
         let screen_width;
         let screen_height;
@@ -301,12 +335,15 @@
             fill(0, 0, 0, 150);
             rect(0, 0, screen_width, screen_height);
 
-            fill(255);
-            textAlign(CENTER, CENTER);
-            textSize(screen_height * 0.1);
-            text('Game Over', screen_width / 2, screen_height / 2 - 50);
-            textSize(screen_height * 0.05);
-            text(`Score: ${score}`, screen_width / 2, screen_height / 2 + 50);
+            document.getElementById('game-over-popup').style.display = 'block';
+            document.getElementById('game-over-text').innerHTML = `
+                <div>Game Over</div>
+                <div>Score: ${score}</div>
+            `;
+        }
+
+        function collectScore() {
+            window.location.href = '/game'; // Redirect to the Game page
         }
 
         function displayGame() {
