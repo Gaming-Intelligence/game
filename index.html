@@ -343,7 +343,7 @@
         }
 
         function collectScore() {
-            window.location.href = '/game'; // Redirect to the Game page
+            window.parent.postMessage('navigateToGame', '*'); // Redirect to the Game page
         }
 
         function displayGame() {
