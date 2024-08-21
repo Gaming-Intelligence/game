@@ -349,7 +349,7 @@
         }
 
         function collectScore() {
-            window.parent.postMessage('navigateToGame', '*'); // Redirect to the Game page
+            window.parent.postMessage({ type: 'navigateToGame', score: score }, '*'); // Redirect to the Game page
         }
 
         function displayGame() {
