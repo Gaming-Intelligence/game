@@ -349,7 +349,8 @@
         }
 
         function collectScore() {
-            window.parent.postMessage({ type: 'navigateToGame', score: score }, '*'); // Redirect to the Game page
+            window.parent.postMessage({ type: 'gameScore', score }, '*'); // Send the score to the parent React app
+            window.parent.postMessage('navigateToGame', '*'); // Redirect to the Game page
         }
 
         function displayGame() {
