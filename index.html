@@ -203,24 +203,30 @@
         }
 
         function collectCoins() {
-            for (let i = coins.length - 1; i >= 0; i--) {
-                if (coins[i].isCollected(mouseX, mouseY)) {
-                    if (coins[i].coinType === "new") {
-                        score = Math.floor(score * 0.5);
-                    } else {
-                        score += coins[i].value;
-                    }
+            // Iterate through each touch point
+            for (let t = 0; t < touches.length; t++) {
+                let touchX = touches[t].x;
+                let touchY = touches[t].y;
 
-                    if (coins[i].coinType === "bronze") {
-                        triggerFreeze();
-                    }
+                for (let i = coins.length - 1; i >= 0; i--) {
+                    if (coins[i].isCollected(touchX, touchY)) {
+                        if (coins[i].coinType === "new") {
+                            score = Math.floor(score * 0.5);
+                        } else {
+                            score += coins[i].value;
+                        }
 
-                    createParticles(coins[i].x, coins[i].y); // Create particles at the coin's position
-                    coins.splice(i, 1);
+                        if (coins[i].coinType === "bronze") {
+                            triggerFreeze();
+                        }
 
-                    // Check if the last coin is collected
-                    if (coinsReleased >= totalCoins && coins.length === 0) {
-                        endGame();
+                        createParticles(coins[i].x, coins[i].y); // Create particles at the coin's position
+                        coins.splice(i, 1);
+
+                        // Check if the last coin is collected
+                        if (coinsReleased >= totalCoins && coins.length === 0) {
+                            endGame();
+                        }
                     }
                 }
             }
