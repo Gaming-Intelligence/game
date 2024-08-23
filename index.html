@@ -80,7 +80,7 @@
         let fadingIn = true;
 
         function preload() {
-            backgroundImage = loadImage('background3.png', () => {
+            backgroundImage = loadImage('background2.jpg', () => {
                 imageLoaded = true;
             });
 
@@ -349,7 +349,7 @@
         }
 
         function collectScore() {
-            window.parent.postMessage({ type: 'navigateToGame', score: score }, '*'); // Redirect to the Game page
+            window.parent.postMessage({ type: 'gameScore', score: score }, '*'); // Sends the score to the parent React app
         }
 
         function displayGame() {
