@@ -349,7 +349,8 @@
         }
 
         function collectScore() {
-            window.parent.postMessage({ type: 'gameScore', score: score }, '*'); // Sends the score to the parent React app
+            window.parent.postMessage({ type: 'gameScore', score: score }, '*');
+            window.parent.postMessage({ type: 'gameOver' }, '*');
         }
 
         function displayGame() {
